@@ -59,7 +59,6 @@ def get_video_duration(input_path):
     try:
         duration = subprocess.check_output(cmd, stderr=subprocess.PIPE).decode().strip()
         if duration == 'N/A':
-            # If stream duration is N/A, try format duration instead
             cmd = [
                 'ffprobe',
                 '-v', 'error',
@@ -69,7 +68,6 @@ def get_video_duration(input_path):
             ]
             duration = subprocess.check_output(cmd, stderr=subprocess.PIPE).decode().strip()
         
-        # If we still can't get duration, estimate using bitrate and filesize
         if duration == 'N/A':
             return None
             
@@ -79,13 +77,11 @@ def get_video_duration(input_path):
 
 def convert_video(input_path):
     try:
-        # Get terminal width for centering
         terminal_width = shutil.get_terminal_size().columns
 
         clear_screen()
         print_banner()
         
-        # Validate input file
         if not os.path.exists(input_path):
             print_error("Input file not found!")
             return False
@@ -93,17 +89,14 @@ def convert_video(input_path):
         print_status("Starting conversion process...")
         print_status(f"Input file: {Colors.YELLOW}{input_path}{Colors.ENDC}")
         
-        # Create output path
         output_path = str(Path(input_path).with_suffix('.webm'))
         print_status(f"Output will be saved as: {Colors.YELLOW}{output_path}{Colors.ENDC}")
         
-        # Get video duration for progress calculation
         duration = get_video_duration(input_path)
         if duration is None:
             print_status("Could not determine video duration. Progress bar will show frames processed.", Colors.YELLOW)
-            duration = 1  # Use dummy duration for progress calculation
+            duration = 1
         
-        # Prepare conversion command
         cmd = [
             'ffmpeg',
             '-i', input_path,
@@ -112,11 +105,10 @@ def convert_video(input_path):
             '-crf', '30',
             '-b:v', '0',
             '-c:a', 'libopus',
-            '-y',  # Overwrite output file if exists
+            '-y',  
             output_path
         ]
         
-        # Start conversion process
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -124,7 +116,7 @@ def convert_video(input_path):
             universal_newlines=True
         )
         
-        print("\n")  # Add space for progress bar
+        print("\n")  
         frame_count = 0
         
         while True:
@@ -138,7 +130,6 @@ def convert_video(input_path):
                     frame = line.split('frame=')[1].strip()
                     if frame.isdigit():
                         frame_count = int(frame)
-                        # Show frame count if duration is unknown
                         if duration == 1:
                             progress_text = f"Processed {frame_count} frames"
                             sys.stdout.write('\033[F')  # Move cursor up
@@ -153,17 +144,15 @@ def convert_video(input_path):
                     time_ms = int(line.split('=')[1]) / 1000000
                     progress = (time_ms / duration) * 100 if duration != 1 else 0
                     
-                    # Clear previous line and print progress
-                    sys.stdout.write('\033[F')  # Move cursor up
-                    sys.stdout.write('\033[K')  # Clear line
+                    sys.stdout.write('\033[F')  
+                    sys.stdout.write('\033[K')  #
                     progress_bar = create_progress_bar(progress)
                     print(progress_bar.center(terminal_width))
                 except:
                     pass
         
-        # Check conversion result
         if process.returncode == 0 and os.path.exists(output_path):
-            print("\n")  # Add space after progress bar
+            print("\n")  
             print_success("Conversion completed successfully!")
             print_success(f"Output saved to: {Colors.YELLOW}{output_path}{Colors.ENDC}")
             return True
@@ -180,20 +169,16 @@ def main():
     clear_screen()
     print_banner()
     
-    # Check for FFmpeg installation
     if not check_ffmpeg():
         print_error("FFmpeg is not installed or not found in system PATH!")
         print_status("Please install FFmpeg to use this converter.", Colors.YELLOW)
         return
     
-    # Get input file
     print(f"{Colors.YELLOW}Enter the path to your MP4 file:{Colors.ENDC}")
     input_path = input(f"{Colors.CYAN}> {Colors.ENDC}").strip()
     
-    # Remove quotes if present
     input_path = input_path.strip('"\'')
     
-    # Start conversion
     convert_video(input_path)
     
     print(f"\n{Colors.YELLOW}Press Enter to exit...{Colors.ENDC}")
